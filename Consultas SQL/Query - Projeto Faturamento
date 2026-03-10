@@ -1,0 +1,79 @@
+-- =====================================================
+-- DASHBOARD FATURAMENTO CLÍNICO (MYBI)
+-- Query utilizada para geração dos indicadores
+-- =====================================================
+
+SELECT Sis_Atendimento.DataAtendimento AS 'Data Atend',                                          
+       vwSis_Paciente.Paciente AS 'Paciente',                                         
+       Sis_Empresa.Empresa AS 'Empresa',                                             
+       Sis_Filial.Filial AS 'Filial',                                             
+       MedAtend.Medico AS 'Médico Atend',                                             
+       EspecAtend.Especialidade AS 'Especialidade Atend',                                             
+       vwSis_Clinica.Clinica AS 'Clínica',                                    
+       Fat_EntregaLote.DataEntrega AS 'Data Entrega',                  
+       Fat_ItemMovimento.Data AS 'Data Mov',                                             
+       Fat_Item.Item AS 'Item',                                             
+       Fat_ItemGrupo.ItemGrupo AS 'Grupo de Item',   
+	   Fat_ItemTipo.IDItemTipo AS 'Tipo', 
+       Sis_CentroCusto.CentroCusto AS 'Centro de Custo',                                             
+       Fat_LocalUtilizacao.LocalUtilizacao AS 'Local de Util.',                                             
+       MedMov.Medico AS 'Médico Mov',                                             
+       EspecMov.Especialidade AS 'Especialidade Mov',                                             
+       vwSis_Convenio.Convenio AS 'Convênio Mov',               
+       Sis_ContaMedica.NumeroGuia AS 'Número Guia',                                            
+       Sis_Plano.Plano AS 'Plano',            
+       Fat_EntregaLote.CodEntregaLote AS 'Lote',                                                                          
+       Sis_Atendimento.IDAtendimento AS 'Qtde Atendimento',                          
+       Fat_ItemMovimento.IDItemMovimento AS 'Qtde Item',                                         
+       dbo.CalcPrecoItemMovimento (Fat_ItemMovimento.IDItemMovimento, 1, 1) AS 'Valor Total Item',                                         
+       CASE                                          
+           WHEN Sis_ContaMedica.StatusEntrega = 0 THEN 'Inicial'                                         
+           WHEN Sis_ContaMedica.StatusEntrega = 1 THEN 'Desmarcado'                                         
+           WHEN Sis_ContaMedica.StatusEntrega = 2 THEN 'Conferido'                                         
+           WHEN (Sis_ContaMedica.StatusEntrega = 3) OR (Sis_ContaMedica.StatusEntrega = 4 AND Fat_EntregaConta.IDEntregaLote IS NULL) THEN 'Entregue'                                         
+           WHEN (Sis_ContaMedica.StatusEntrega = 4 AND Fat_EntregaConta.IDEntregaLote IS NOT NULL) THEN 'Lote'                                         
+           WHEN Sis_ContaMedica.StatusEntrega = 9 THEN 'Eliminado'                                                                
+       END AS 'Status Conta',               
+       CASE            
+           WHEN Fat_ItemMovimento.StatusEntrega = 0 THEN 'Inicial'                                         
+           WHEN Fat_ItemMovimento.StatusEntrega = 1 THEN 'Desmarcado'                                         
+           WHEN Fat_ItemMovimento.StatusEntrega = 2 THEN 'Conferido'                                         
+           WHEN Fat_ItemMovimento.StatusEntrega = 3 THEN 'Entregue'                                         
+           WHEN Fat_ItemMovimento.StatusEntrega = 4 THEN 'Lote'                                         
+           WHEN Fat_ItemMovimento.StatusEntrega = 9 THEN 'Eliminado'                                                                
+       END AS 'Status do Item',             
+       CASE                        
+           WHEN Sis_Ambulatorio.IDAmbulatorio IS NOT NULL THEN 'Ambulatório'                        
+           WHEN Sis_Internacao.IDInternacao IS NOT NULL THEN 'Internação'                        
+       END AS 'Tipo Atendimento'                              
+FROM Sis_ContaMedica                                              
+JOIN Sis_Atendimento     (NOLOCK) ON (Sis_ContaMedica.IDAtendimento = Sis_Atendimento.IDAtendimento)                                            
+JOIN vwSis_Paciente		 (NOLOCK) ON (vwSis_Paciente.IDPaciente = Sis_Atendimento.IDPaciente)                                         
+JOIN Sis_Empresa         (NOLOCK) ON (Sis_Atendimento.IDEmpresa = Sis_Empresa.IDEmpresa)                                             
+JOIN Sis_Filial          (NOLOCK) ON (Sis_Atendimento.IDFilial = Sis_Filial.IDFilial)                                             
+JOIN Fat_ItemMovimento   (NOLOCK) ON (Sis_ContaMedica.IDContaMedica = Fat_ItemMovimento.IDContaMedica)                                             
+JOIN Sis_CentroCusto     (NOLOCK) ON (Fat_ItemMovimento.IDCentroCusto = Sis_CentroCusto.IDCentroCusto)                                             
+JOIN Fat_LocalUtilizacao (NOLOCK) ON (Fat_ItemMovimento.IDLocalUtilizacao = Fat_LocalUtilizacao.IDLocalUtilizacao)                                             
+JOIN Fat_Item            (NOLOCK) ON (Fat_ItemMovimento.IDItem = Fat_Item.IDItem)     
+JOIN Fat_ItemTipo        (NOLOCK) ON (Fat_Item.IDItemTipo = Fat_ItemTipo.IDItemTipo)
+JOIN Fat_ItemGrupo       (NOLOCK) ON (Fat_ItemGrupo.IDItemGrupo = Fat_Item.IDItemGrupo)                                             
+JOIN vwSis_Convenio      (NOLOCK) ON (Sis_ContaMedica.IDConvenio = vwSis_Convenio.IDConvenio)                                             
+JOIN Sis_Plano           (NOLOCK) ON (Sis_ContaMedica.IDPlano = Sis_Plano.IDPlano)             
+LEFT JOIN Fat_EntregaConta (NOLOCK) ON (Fat_EntregaConta.IDContaMedica = Sis_ContaMedica.IDContaMedica)                                              
+LEFT JOIN Fat_EntregaLote  (NOLOCK) ON (Fat_ItemMovimento.IDEntregaLote = Fat_EntregaLote.IDEntregaLote)                                             
+LEFT JOIN Sis_Internacao   (NOLOCK) ON (Sis_Atendimento.IDAtendimento = Sis_Internacao.IDInternacao)                                             
+LEFT JOIN Sis_Ambulatorio  (NOLOCK) ON (Sis_Atendimento.IDAtendimento = Sis_Ambulatorio.IDAmbulatorio)                        
+LEFT JOIN vwSis_Clinica    (NOLOCK) ON (Sis_Atendimento.IDClinica = vwSis_Clinica.IDClinica)                                             
+LEFT JOIN vwSis_Medico MedAtend        (NOLOCK) ON (Sis_Atendimento.IDMedico = MedAtend.IDMedico)                                             
+LEFT JOIN vwSis_Medico MedConta        (NOLOCK) ON (Sis_ContaMedica.IDMedico = MedConta.IDMedico)                                             
+LEFT JOIN vwSis_Medico MedMov          (NOLOCK) ON (Fat_ItemMovimento.IDMedico = MedMov.IDMedico)                                             
+LEFT JOIN Sis_Especialidade EspecAtend (NOLOCK) ON (Sis_Atendimento.IDEspecialidade = EspecAtend.IDEspecialidade)                                             
+LEFT JOIN Sis_Especialidade EspecConta (NOLOCK) ON (Sis_ContaMedica.IDEspecialidade = EspecConta.IDEspecialidade)                                             
+LEFT JOIN Sis_Especialidade EspecMov   (NOLOCK) ON (Fat_ItemMovimento.IDEspecialidade = EspecMov.IDEspecialidade)         
+WHERE Fat_ItemMovimento.Data between '20250101' AND '20251231'   
+--WHERE Fat_ItemMovimento.Data between @DATA01 AND @DATA02'#dt1#' AND '#dt2#'                 
+  AND Sis_Atendimento.Desativado = 0                  
+  AND Sis_Atendimento.Hidden = 0
+  AND   NOT EXISTS (SELECT Fat_EntregaConta.IDEntregaConta
+                    FROM Fat_EntregaConta
+				            WHERE Fat_EntregaConta.IDContaMedica = Sis_ContaMedica.IDContaMedica)
