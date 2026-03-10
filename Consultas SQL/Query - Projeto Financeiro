@@ -1,0 +1,146 @@
+-- =====================================================
+-- DASHBOARD FINANCEIRO (MYBI)
+-- Query utilizada para geração dos indicadores
+-- =====================================================
+
+SELECT 
+    Sis_Empresa.Empresa AS 'Empresa',
+    Sis_Filial.Filial AS 'Unidade',
+	  Sis_PessoaTipo.PessoaTipo AS 'Tipo de Pessoa',
+	  Sis_Pessoa.Pessoa AS 'Pessoa',
+    Fin_Lancamento.DocLancamento AS 'DocLancamento',
+    Fin_Lancamento.IDLancamento AS 'ID Lancamento',
+    vwSis_Paciente.Paciente AS 'Paciente',
+    Fin_Quitacao.DataQuitacao AS 'Data Quitação',
+    Fin_Lancamento.DataLancamento AS 'Data Lançamento',
+    Fin_Lancamento.DataVencimento AS 'Data Vencimento',
+	  Fin_ContaCorrente.ContaCorrente AS 'Conta Administrativa',
+    Sis_CentroCustoLocal.CentroCustoLocal AS 'Centro de Custo',
+    Fin_Lancamento.ValorLancamento AS 'Valor Bruto A Pagar',
+  	Fin_Lancamento.TaxaCobrancaValor AS 'Valor Taxa Cobrança do Lançamento',
+  	Fin_Lancamento.ValorImpRetidoPrevisto AS 'Deduções',
+  	CAST(ROUND(ISNULL((((Fin_ContaCorrenteLancamento.Valor * 100)/
+  	(SELECT SUM(Fin_ContaCorrenteLancamento.Valor)
+  	FROM Fin_ContaCorrenteLancamento
+  	WHERE Fin_Lancamento.IDLancamento = Fin_ContaCorrenteLancamento.IDLancamento))/100) * Fin_Lancamento.ValorImpRetidoPrevisto, 0) ,2) AS FLOAT)
+  	AS 'Imposto Previsto por Desdobramento',
+		CAST(ROUND(ISNULL((((Fin_ContaCorrenteLancamento.Valor * 100)/
+	  (SELECT SUM(Fin_ContaCorrenteLancamento.Valor)
+  	FROM Fin_ContaCorrenteLancamento
+  	WHERE Fin_Lancamento.IDLancamento = Fin_ContaCorrenteLancamento.IDLancamento))/100) * Fin_Lancamento.TaxaCobrancaValor, 0) ,2) AS FLOAT)
+	  AS 'Taxa Prevista por Desdobramento',
+  	Fin_ContaCorrenteLancamento.Valor AS 'Valor A Pagar por Desdobramento',
+	  Fin_QuitacaoLancamento.Valor AS 'Valor Pago do Lançamento',
+    CAST (ROUND (ISNULL(((Fin_QuitacaoLancamento.Valor + Fin_QuitacaoLancamento.ValorTaxaCobranca - Fin_QuitacaoLancamento.ValorImpRetido) 
+                *  Fin_ContaCorrenteLancamento.Valor /
+               (Fin_Lancamento.ValorLancamento -  
+			                ISNULL((SELECT SUM(ValorPrevisto)
+			                        FROM Fin_PrevisaoImposto 
+									WHERE Fin_PrevisaoImposto.IDLancamento = Fin_QuitacaoLancamento.IDLancamento), 0))), 0), 2) AS FLOAT)
+									AS 'Valor Líquido Pago por Desdobramento',
+    CAST (ROUND (ISNULL(((Fin_QuitacaoLancamento.Valor + Fin_QuitacaoLancamento.ValorTaxaCobranca) *  Fin_ContaCorrenteLancamento.Valor / 
+        (ValorLancamento -  ISNULL((SELECT SUM(ValorPrevisto)
+		                            FROM Fin_PrevisaoImposto 
+									WHERE Fin_PrevisaoImposto.IDLancamento = Fin_QuitacaoLancamento.IDLancamento), 0))), 0), 2) AS FLOAT)
+									AS 'Valor Bruto Pago por Desdobramento',
+    CAST (ROUND (ISNULL(((ValorImpRetido) *  Fin_ContaCorrenteLancamento.Valor /
+        (ValorLancamento -  ISNULL((SELECT SUM(ValorPrevisto)
+		                            FROM Fin_PrevisaoImposto
+									WHERE Fin_PrevisaoImposto.IDLancamento = Fin_QuitacaoLancamento.IDLancamento), 0))), 0), 2) AS FLOAT)
+									AS 'Valor Imposto Pago por Desdobramento',
+    CAST (ROUND( ISNULL((Fin_QuitacaoLancamento.ValorTaxaCobranca *  Fin_ContaCorrenteLancamento.Valor /
+    Fin_Lancamento.ValorLancamento), 0), 2) AS FLOAT) AS 'Valor Pago da Taxa por Desdobramento',
+    SUM(ISNULL(Fin_QuitacaoLancamento.ValorTaxaCobranca, 0)) AS 'Valor Pago da Taxa do Lançamento',
+    CAST( ROUND (ISNULL( (((Fin_Lancamento.ValorLancamento + Fin_Lancamento.TaxaCobrancaValor) - (ISNULL(Fin_QuitacaoLancamento.Valor, 0) + ISNULL(Fin_QuitacaoLancamento.ValorTaxaCobranca, 0))) * 
+         Fin_ContaCorrenteLancamento.Valor ) / 
+         (Fin_Lancamento.ValorLancamento - 
+          ISNULL((SELECT SUM(ValorPrevisto) 
+                  FROM Fin_PrevisaoImposto 
+                  WHERE Fin_PrevisaoImposto.IDLancamento = Fin_QuitacaoLancamento.IDLancamento), 0) ), 0), 2) AS FLOAT)  AS 'Valor Pendente por Desdobramento',
+    ((Fin_Lancamento.ValorLancamento + Fin_Lancamento.TaxaCobrancaValor) - (ISNULL(Fin_QuitacaoLancamento.Valor, 0) + ISNULL(Fin_QuitacaoLancamento.ValorTaxaCobranca, 0))) AS 'Valor Pendente do Lançamento',
+    Sis_Pessoa.RazaoSocial AS 'Razão Social',
+    Sis_Pessoa.Nominal AS 'Nominal da Pessoa',
+    Fin_Lancamento.DocInterno AS 'Documento Interno',
+    Fin_Documento.NumeroDocumento AS 'Número do Documento',
+  	Fin_NotaFiscal.IDNotaFiscal AS 'ID Nota Fiscal',
+  	Fin_NotaFiscalTipo.NotaFiscalTipo AS 'Tipo de NFE',
+  	Fin_NotaFiscal.Numero AS 'Número da NFE',
+  	Fin_NotaFiscal.DataEmissao as 'Data de Emissão',
+  	ISNULL(Fin_NotaFiscal.ValorTotalNF, 0) AS 'Valor Total da NFE',
+  	Fin_NotaFiscal.IsCancelada,
+  	Fin_NotaFiscal.NumParcelasPag AS 'Qtde de Parcelas',
+  	Fin_DocumentoTipo.DocumentoTipo AS 'Tipo de Doc',
+  	Fin_Lancamento.JurosValor AS 'Valor dos Juros',
+  	Fin_Lancamento.JurosPercentual AS 'Percentual de Juros',
+  	Fin_Lancamento.JurosDiasAposVencto AS 'Valor Juros Após Venc.',
+  	Fin_Lancamento.MultaValor AS 'Valor da Multa',
+  	Fin_Lancamento.MultaPercentual AS 'Percentual da Multa',
+  	Fin_Lancamento.MultaDiasAposVencto AS 'Valor Multa Após Venc.',
+  	Fin_Lancamento.CorrecaoValor AS 'Valor da Correção',
+  	Fin_Lancamento.CorrecaoPercentual AS 'Percentual da Correção',
+  	Fin_Lancamento.CorrecaoDiasAposVencto AS 'Valor Correção Após Venc.',
+  	Fin_LancamentoDesconto.DescontoValor AS 'Valor do Desconto',
+  	Fin_LancamentoDesconto.DescontoPercentual AS 'Percentual do Desconto',
+  	Fin_LancamentoDesconto.DescontoDiasAntesVencto AS 'Valor Desc. Após Venc.',
+    (SUM(ISNULL(Fin_QuitacaoLancamento.ValorAMaior, 0)) - SUM(ISNULL(Fin_QuitacaoLancamento.ValorPrincipal, 0))) AS 'Valor A Maior',
+    CAST( ROUND (ISNULL (SUM ((Fin_Lancamento.ValorLancamento + Fin_Lancamento.JurosValor +
+    Fin_Lancamento.MultaValor + Fin_Lancamento.CorrecaoValor + Fin_Lancamento.TaxaCobrancaValor) - 
+  	Fin_Lancamento.ValorImpRetidoPrevisto), 0), 2) AS FLOAT) AS 'Valor Previsto Após Venc.',
+    Fin_Lancamento.AnoCompetencia AS 'Ano da Competência',
+    Fin_Lancamento.MesCompetencia AS 'Mês Competência',
+    CASE  
+        WHEN Fin_Lancamento.DataEncerramento IS NULL THEN 'Aberto / Atrasado'  
+        ELSE 'Encerrado'  
+    END AS 'Status do Lançamento',
+    CASE  
+        WHEN Fin_Quitacao.DataQuitacao IS NULL THEN 'A Pagar'
+        WHEN CAST(ROUND(ISNULL(
+            ((Fin_QuitacaoLancamento.Valor + Fin_QuitacaoLancamento.ValorTaxaCobranca - ValorImpRetido) * 
+             Fin_ContaCorrenteLancamento.Valor / 
+             (Fin_Lancamento.ValorLancamento + Fin_Lancamento.TaxaCobrancaValor - 
+              ISNULL((SELECT SUM(ValorPrevisto) 
+                      FROM Fin_PrevisaoImposto 
+                      WHERE Fin_PrevisaoImposto.IDLancamento = Fin_QuitacaoLancamento.IDLancamento), 0))
+             ), 0), 2) AS FLOAT) < Fin_ContaCorrenteLancamento.Valor THEN 'Parcial'
+        ELSE 'Pago'
+    END AS 'Status da Quitação'
+FROM Fin_Lancamento (NOLOCK)
+JOIN Fin_Pagar (NOLOCK) ON (Fin_Lancamento.IDLancamento = Fin_Pagar.IDPagar)
+LEFT JOIN Fin_QuitacaoLancamento ON (Fin_QuitacaoLancamento.IDLancamento = Fin_Lancamento.IDLancamento 
+                                    AND Fin_QuitacaoLancamento.IsCancelado = 0)
+LEFT JOIN Fin_Quitacao ON (Fin_Quitacao.IDQuitacao = Fin_QuitacaoLancamento.IDQuitacao)
+LEFT JOIN vwSis_Paciente (NOLOCK) ON (Fin_Lancamento.IDPessoa = vwSis_Paciente.IDPaciente)
+LEFT JOIN Fin_Documento ON (Fin_Documento.IDDocumento = Fin_Lancamento.IDDocumento)
+LEFT JOIN Fin_DocumentoTipo ON (Fin_Lancamento.IDDocumentoTipo = Fin_DocumentoTipo.IDDocumentoTipo)
+LEFT JOIN Fin_PrevisaoImposto ON (Fin_PrevisaoImposto.IDLancamento = Fin_QuitacaoLancamento.IDLancamento)
+JOIN Sis_Pessoa (NOLOCK) ON (Fin_Lancamento.IDPessoa = Sis_Pessoa.IDPessoa)
+JOIN Sis_PessoaTipo (NOLOCK) ON (Sis_Pessoa.IDPessoaTipo = Sis_PessoaTipo.IDPessoaTipo)
+JOIN Sis_Empresa (NOLOCK) ON (Fin_Lancamento.IDEmpresa = Sis_Empresa.IDEmpresa)
+JOIN Fin_ContaCorrenteLancamento ON (Fin_ContaCorrenteLancamento.IDLancamento = Fin_Lancamento.IDLancamento)
+JOIN Sis_Filial ON (Sis_Filial.IDFilial = Fin_ContaCorrenteLancamento.IDFilial)
+JOIN Fin_ContaCorrente  (NOLOCK) ON (Fin_ContaCorrenteLancamento.IDContaCorrente = Fin_ContaCorrente.IDContaCorrente)
+JOIN Fin_ContaTipo (NOLOCK) ON (Fin_ContaCorrente.IDContaTipo = Fin_ContaTipo.IDContaTipo)
+JOIN Sis_CentroCustoLocal (NOLOCK) ON (Fin_ContaCorrenteLancamento.IDCentroCustoLocal = Sis_CentroCustoLocal.IDCentroCustoLocal)
+LEFT JOIN Fin_NotaFiscal ON (Fin_NotaFiscal.IDNotaFiscal = Fin_Pagar.IDNotaFiscal)
+LEFT JOIN Fin_NotaFiscalTipo ON (Fin_NotaFiscalTipo.IDNotaFiscalTipo = Fin_NotaFiscal.IDNotaFiscalTipo)
+LEFT JOIN Fin_LancamentoDesconto ON (Fin_LancamentoDesconto.IDLancamento = Fin_Lancamento.IDLancamento)
+WHERE Fin_Lancamento.Desativado = 0
+AND   Fin_Lancamento.Hidden = 0
+AND   Fin_Lancamento.DataVencimento between '2025-01-01' AND '2025-21-31'
+GROUP BY Fin_Lancamento.IDLancamento, Fin_Lancamento.IDDocumento, Sis_Pessoa.Pessoa,
+         Fin_Lancamento.DocLancamento, Fin_Lancamento.DataLancamento, Fin_Lancamento.DataVencimento,
+         Fin_Lancamento.ValorLancamento, Fin_ContaCorrenteLancamento.Valor,
+		     Fin_QuitacaoLancamento.Valor, Fin_Lancamento.TaxaCobrancaValor,
+         Sis_Empresa.Empresa, Sis_Filial.Filial, Sis_Pessoa.RazaoSocial, Sis_Pessoa.Nominal, 
+         Fin_Lancamento.DocInterno, Fin_Documento.NumeroDocumento, Fin_NotaFiscal.IDNotaFiscal, Fin_NotaFiscalTipo.NotaFiscalTipo,
+	    	 Fin_NotaFiscal.Numero, Fin_NotaFiscal.DataMovimento, Fin_NotaFiscal.DataEmissao, Fin_NotaFiscal.ValorTotalNF, Fin_NotaFiscal.IsCancelada,
+	    	 Fin_NotaFiscal.NumParcelasPag, Fin_Pagar.IDPagar, Fin_DocumentoTipo.DocumentoTipo, Fin_Lancamento.JurosValor, Fin_Lancamento.JurosPercentual,
+		     Fin_Lancamento.JurosDiasAposVencto, Fin_Lancamento.MultaValor, Fin_Lancamento.MultaPercentual, Fin_Lancamento.MultaDiasAposVencto,
+	     	 Fin_Lancamento.CorrecaoValor, Fin_Lancamento.CorrecaoPercentual, Fin_Lancamento.CorrecaoDiasAposVencto, Fin_Lancamento.ValorImpRetidoPrevisto, 
+		     Fin_QuitacaoLancamento.ValorJuros, Fin_QuitacaoLancamento.ValorMulta, Fin_QuitacaoLancamento.ValorCorrecao, Fin_LancamentoDesconto.DescontoValor,
+		     Fin_LancamentoDesconto.DescontoPercentual, Fin_LancamentoDesconto.DescontoDiasAntesVencto,
+		     Fin_ContaCorrenteLancamento.IDCentroCustoLocal, Sis_CentroCustoLocal.CentroCustoLocal,
+         Fin_Lancamento.AnoCompetencia, Fin_Lancamento.MesCompetencia, Sis_PessoaTipo.PessoaTipo, vwSis_Paciente.Paciente,
+         Fin_Lancamento.DataEncerramento, Fin_Quitacao.DataQuitacao, Fin_ContaCorrenteLancamento.Valor, 
+    		 Fin_ContaCorrenteLancamento.IDContaCorrenteLancamento, Fin_ContaTipo.IDContaTipo, Fin_ContaCorrente.ContaCorrente,
+    		 Fin_QuitacaoLancamento.IDLancamento, Fin_QuitacaoLancamento.ValorTaxaCobranca, Fin_QuitacaoLancamento.ValorImpRetido
