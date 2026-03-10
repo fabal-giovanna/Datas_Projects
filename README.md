@@ -51,7 +51,8 @@ Monitorar indicadores estratégicos relacionados a:
 
 ### 📷 Dashboard
 
-![Dashboard Faturamento](images/Dashboard_Faturamento.png)
+![Dashboard Faturamento] <img width="1280" height="628" alt="Dashboard_Faturamento" src="https://github.com/user-attachments/assets/a807816a-5f7d-4925-a276-2840382dd079" />
+
 
 ---
 
@@ -86,7 +87,8 @@ Analisar os títulos a receber e recebidos
 
 ### 📷 Dashboard
 
-![Dashboard_Financeiro](images/Dashboard_Financeiro.png)
+![Dashboard_Financeiro] <img width="1280" height="648" alt="Dashboard_Financeiro" src="https://github.com/user-attachments/assets/1394b9a9-e280-4ab3-97ec-6c5f89f1071c" />
+
 
 ---
 
